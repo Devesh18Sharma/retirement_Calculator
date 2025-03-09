@@ -11,9 +11,9 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-// Recharts + custom tooltip
-import RetirementChart from "./RetirementChart";
-import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
+// Recharts + custom tooltips
+import RetirementChart from "./RetirementChart2";
+// import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
 
 // Calculation helpers
 import {
@@ -450,7 +450,7 @@ const RetirementCalculator: React.FC = () => {
                 <Box sx={{ width: "100%" }}>
                   <RetirementChart
                     data={chartData}
-                    tooltip={<CustomGraphTooltip chartData={chartData} />}
+                    // tooltip={<CustomGraphTooltip chartData={chartData} />}
                   />
                 </Box>
               )}
