@@ -24,7 +24,8 @@ interface RetirementChartProps {
   tooltip?: React.ReactNode;
 }
 
-const RetirementChart: React.FC<RetirementChartProps> = ({ data, tooltip }) => {
+// const RetirementChart: React.FC<RetirementChartProps> = ({ data, tooltip }) => {
+const RetirementChart: React.FC<RetirementChartProps> = ({ data }) => {
   // We'll map a "whatWeHave" field
   const chartData = data.map((item) => ({
     ...item,

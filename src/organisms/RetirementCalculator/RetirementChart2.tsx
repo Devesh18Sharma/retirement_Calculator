@@ -24,7 +24,7 @@ interface RetirementChartProps {
 const RetirementChart: React.FC<RetirementChartProps> = ({ data }) => {
   // Calculate the maximum age to extend our projection
   const lastYear = data[data.length - 1]?.year || 0;
-  const firstYear = data[0]?.year || 0;
+  // const firstYear = data[0]?.year || 0;
   
   // Generate extended data with the bell curve shape
   const extendedData = useMemo(() => {
@@ -71,17 +71,23 @@ const RetirementChart: React.FC<RetirementChartProps> = ({ data }) => {
   }, [data, lastYear]);
 
   // Format currency for tooltip
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number) => {
     return value.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     });
-  };
+  };  
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: any[];  // Replace `any` with a more specific type if available
+    label?: string | number;
+  }
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const totalSavings = (payload[0]?.value || 0) + (payload[1]?.value || 0);
       

@@ -10,7 +10,7 @@ const theme = createTheme({
     primary: { main: "#2c3c64" },
     secondary: { main: "#000000" },
     // Using MUI's built-in grey instead of custom (or extend via module augmentation if needed)
-    grey: { main: "#949EAB" },
+    // grey: { main: "#949EAB" },
   },
 });
 
