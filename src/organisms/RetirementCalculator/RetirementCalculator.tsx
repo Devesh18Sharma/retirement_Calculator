@@ -11,9 +11,9 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-// Recharts + custom tooltip
-import RetirementChart from "./RetirementChart";
-import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
+// Recharts + custom tooltips
+import RetirementChart from "./RetirementChart2";
+// import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
 
 // Calculation helpers
 import {
@@ -74,9 +74,9 @@ const RetirementCalculator: React.FC = () => {
   const [otherRetirementIncome, setOtherRetirementIncome] = useState<number>(0);
 
   // B. Basic assumptions
-  const annualRateOfReturn = 7; // e.g., 7%
+  const annualRateOfReturn = 12; // e.g., 12%
   const withdrawalRate = 4;     // 4% safe withdrawal rate
-  const yearsInRetirement = 25; // we assume 25 years in retirement
+  const yearsInRetirement = 30; // we assume 30 years in retirement
 
   // Derived
   const yearsUntilRetirement = Math.max(0, desiredRetirementAge - currentAge);
@@ -99,7 +99,7 @@ const RetirementCalculator: React.FC = () => {
 
   const swipeFV = useMemo(() => {
     return futureValueMonthlyCompounding(
-      0,
+      0,// SwipeSwipe starts at 0
       swipeMonthlyContributions,
       annualRateOfReturn,
       totalMonthsUntilRetirement
@@ -450,7 +450,7 @@ const RetirementCalculator: React.FC = () => {
                 <Box sx={{ width: "100%" }}>
                   <RetirementChart
                     data={chartData}
-                    tooltip={<CustomGraphTooltip chartData={chartData} />}
+                    // tooltip={<CustomGraphTooltip chartData={chartData} />}
                   />
                 </Box>
               )}
