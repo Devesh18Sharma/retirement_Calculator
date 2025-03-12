@@ -12,7 +12,7 @@ import {
 import { styled } from "@mui/material/styles";
 
 // Recharts + custom tooltips
-import RetirementChart from "./RetirementChart2";
+import RetirementChart from "./RetirementChart";
 // import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
 
 // Calculation helpers
