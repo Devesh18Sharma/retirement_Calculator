@@ -1,3 +1,5 @@
+// src/organisms/RetirementCalculator/RetirementChart.tsx
+
 import React from "react";
 import {
   AreaChart,
@@ -9,7 +11,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
 import CustomGraphTooltip from "../../atom/CustomGraphTooltip/CustomGraphTooltip";
 
 interface ChartItem {
@@ -21,21 +22,32 @@ interface ChartItem {
 
 interface RetirementChartProps {
   data: ChartItem[];
-  tooltip?: React.ReactNode;
 }
 
-// const RetirementChart: React.FC<RetirementChartProps> = ({ data, tooltip }) => {
 const RetirementChart: React.FC<RetirementChartProps> = ({ data }) => {
-  // We'll map a "whatWeHave" field
+  // Build an array with "whatWeHave" for convenience
   const chartData = data.map((item) => ({
     ...item,
-    whatWeHave: item.userPortion ,
-    // whatWeHave: item.userPortion + item.swipePortion,
+    whatWeHave: item.userPortion + item.swipePortion,
   }));
+
+  // Format large numbers on the Y-axis
+  const formatYAxis = (value: number) => {
+    if (value >= 1_000_000) {
+      return `$${(value / 1_000_000).toFixed(1)}M`;
+    }
+    if (value >= 1_000) {
+      return `$${(value / 1000).toFixed(0)}k`;
+    }
+    return `$${value}`;
+  };
 
   return (
     <ResponsiveContainer width="100%" height={400}>
-      <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+      <AreaChart
+        data={chartData}
+        margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+      >
         <defs>
           <linearGradient id="colorHave" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.7} />
@@ -53,13 +65,12 @@ const RetirementChart: React.FC<RetirementChartProps> = ({ data }) => {
 
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="year" stroke="#949EAB" />
-        <YAxis
-          stroke="#949EAB"
-          tickFormatter={(tick) => `$${(tick / 1000).toFixed(0)}k`}
-        />
+        <YAxis stroke="#949EAB" tickFormatter={formatYAxis} />
         <Tooltip
-  content={(props) => <CustomGraphTooltip {...props} chartData={chartData} />}
-/>
+          content={(props) => (
+            <CustomGraphTooltip {...props} chartData={chartData} />
+          )}
+        />
         <Legend />
 
         {/* 1. What We Have */}
