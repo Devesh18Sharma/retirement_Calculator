@@ -27,18 +27,32 @@ import {
 // Use the SwipeNumberField component for consistent input
 import SwipeNumberField from "../../atom/SwipeNumberField/SwipeNumberField";
 
+// Logo
+import swipeswipeLogo from "../../assets/swipeswipe_logo.png";
+
 //
 // 1. STYLED COMPONENTS
 //
 
-// Main heading centered
-const MainHeading = styled(Typography)(({ theme }) => ({
+// Header bar with logo and title
+const HeaderBar = styled(Box)(() => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "12px",
+  paddingTop: 20,
+  paddingBottom: 16,
+}));
+
+const HeaderLogo = styled("img")(() => ({
+  height: 40,
+  width: "auto",
+}));
+
+const HeaderTitle = styled(Typography)(() => ({
   fontFamily: "Caudex, Arial, sans-serif",
   fontWeight: 700,
   color: "#293a60",
-  textAlign: "center",
-  paddingTop: theme.spacing(3),
-  paddingBottom: theme.spacing(3),
 }));
 
 // A container that ensures Graph & Summary have the same height
@@ -54,8 +68,8 @@ const SummaryBox = styled(Box)(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(2),
   justifyContent: "center",
-  flexWrap: "wrap", 
-  marginBottom: theme.spacing(1.5),
+  flexWrap: "wrap",
+  marginBottom: theme.spacing(1),
   padding: theme.spacing(1.5),
   backgroundColor: "#f8f9fa",
   borderRadius: theme.spacing(1),
@@ -78,7 +92,7 @@ const InfoChip = styled(Chip)(({ theme }) => ({
 
 // Status message box
 const StatusBox = styled(Box)<{ onTrack: boolean }>(({ onTrack, theme }) => ({
-  marginBottom: theme.spacing(1.5),
+  marginBottom: theme.spacing(1),
   textAlign: "center",
   padding: theme.spacing(0.75),
   backgroundColor: onTrack ? "rgba(0, 128, 0, 0.1)" : "rgba(255, 0, 0, 0.1)",
@@ -95,9 +109,57 @@ const InputLabel = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(0.5),
 }));
 
+// Summary table styling
+const SummaryTable = styled("table")(() => ({
+  width: "100%",
+  borderCollapse: "collapse",
+  "& td": {
+    padding: "5px 4px",
+    fontSize: "0.85rem",
+    borderBottom: "1px solid #f0f0f0",
+  },
+  "& tr:last-child td": {
+    borderBottom: "none",
+  },
+}));
+
 // Helper to format large numbers with commas
 const formatNumber = (val: number) =>
   val.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+// Reusable input field — defined at module scope to maintain stable identity across re-renders
+interface InputFieldProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  prefix?: string;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max,
+  prefix = "",
+}) => (
+  <Box sx={{ mb: 1.5 }}>
+    <InputLabel>{label}</InputLabel>
+    <SwipeNumberField
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange(Number(e.target.value))
+      }
+      min={min}
+      max={max}
+      prefix={prefix}
+      fullWidth
+      sx={{ my: 0.5 }}
+    />
+  </Box>
+);
 
 // Constants for input validation
 const MAX_AGE = 150;
@@ -108,7 +170,6 @@ const SWIPE_MONTHLY_CONTRIBUTION = 200; // Fixed at $200/month
 const FIXED_RETIREMENT_AGE = 67; // Fixed retirement age at 67
 const DEFAULT_ANNUAL_RATE_OF_RETURN = 7; // 7%
 const DEFAULT_WITHDRAWAL_RATE = 4; // 4%
-const DEFAULT_YEARS_IN_RETIREMENT = 30;
 
 //
 // 2. MAIN COMPONENT
@@ -122,7 +183,7 @@ const RetirementCalculator: React.FC = () => {
   const [currentRetirementSavings, setCurrentRetirementSavings] = useState<number>(30000);
   const [monthlyContributions, setMonthlyContributions] = useState<number>(500);
   const swipeMonthlyContributions = SWIPE_MONTHLY_CONTRIBUTION;
-  
+
   const [annualBudgetInRetirement, setAnnualBudgetInRetirement] = useState<number>(40000);
   const [otherRetirementIncome, setOtherRetirementIncome] = useState<number>(0);
 
@@ -133,9 +194,7 @@ const RetirementCalculator: React.FC = () => {
   // C. Derived calculations
   const yearsUntilRetirement = Math.max(0, desiredRetirementAge - currentAge);
   const totalMonthsUntilRetirement = yearsUntilRetirement * 12;
-  
-  // D. Total monthly contributions
-  const totalMonthlyContribution = monthlyContributions + swipeMonthlyContributions;
+
 
   // E. Future Value calculations
   // We calculate user and swipe separately for visualization
@@ -172,8 +231,6 @@ const RetirementCalculator: React.FC = () => {
   const netAnnualNeeded = annualBudgetInRetirement - otherRetirementIncome;
   const requiredNestEgg = useMemo(() => {
     const wr = withdrawalRate / 100; // 0.04 for 4%
-    // Using the 4% withdrawal rule: 
-    // Annual spend / withdrawal rate = required nest egg
     return Math.ceil(netAnnualNeeded / wr);
   }, [netAnnualNeeded, withdrawalRate]);
 
@@ -183,9 +240,20 @@ const RetirementCalculator: React.FC = () => {
     return Math.floor(totalFV * wr); // Using the 4% rule
   }, [totalFV, withdrawalRate]);
 
+  // H1. Income-based metrics (makes Annual Pre-Tax Income meaningful)
+  const currentSavingsRate = useMemo(() => {
+    if (annualPreTaxIncome <= 0) return 0;
+    return ((monthlyContributions * 12) / annualPreTaxIncome) * 100;
+  }, [monthlyContributions, annualPreTaxIncome]);
+
+  const incomeReplacementRatio = useMemo(() => {
+    if (annualPreTaxIncome <= 0) return 0;
+    return (annualRetirementIncome / annualPreTaxIncome) * 100;
+  }, [annualRetirementIncome, annualPreTaxIncome]);
+
   // H. On track assessment
   const onTrack = totalFV >= requiredNestEgg;
-  
+
   // I. Age retirement savings runs out (for current plan)
   const currentRunoutAge = useMemo(() => {
     return calcRetirementRunoutAge(
@@ -226,7 +294,7 @@ const RetirementCalculator: React.FC = () => {
     annualRateOfReturn,
     totalMonthsUntilRetirement,
   ]);
-  
+
   const targetTotalFV = targetUserFV + swipeFV;
   const targetRunoutAge = useMemo(() => {
     return calcRetirementRunoutAge(
@@ -280,38 +348,6 @@ const RetirementCalculator: React.FC = () => {
   // L. Toggle: Graph vs. Summary
   const [view, setView] = useState<"graph" | "summary">("graph");
 
-  // Input field component to reduce repetition
-  const InputField = ({ 
-    label,
-    value,
-    onChange,
-    min = 0,
-    max,
-    prefix = ""
-  }: { 
-    label: string;
-    value: number;
-    onChange: (value: number) => void;
-    min?: number;
-    max?: number;
-    prefix?: string;
-  }) => (
-    <Box sx={{ mb: 1.5 }}>
-      <InputLabel>{label}</InputLabel>
-      <SwipeNumberField
-        value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-          onChange(Number(e.target.value))
-        }
-        min={min}
-        max={max}
-        prefix={prefix}
-        fullWidth
-        sx={{ my: 0.5 }}
-      />
-    </Box>
-  );
-
   // Render input form section
   const renderInputForm = () => (
     <Grid className="left-stack" sx={{ height: "100%" }}>
@@ -322,56 +358,56 @@ const RetirementCalculator: React.FC = () => {
         Retirement Details
       </Typography>
 
-      <InputField 
-        label="Current Age" 
-        value={currentAge} 
-        onChange={setCurrentAge} 
-        min={0} 
-        max={MAX_AGE} 
+      <InputField
+        label="Current Age"
+        value={currentAge}
+        onChange={setCurrentAge}
+        min={0}
+        max={MAX_AGE}
       />
 
-      <InputField 
-        label="Annual Pre-Tax Income" 
-        value={annualPreTaxIncome} 
-        onChange={setAnnualPreTaxIncome} 
-        min={0} 
-        max={MAX_ANNUAL_INCOME} 
+      <InputField
+        label="Annual Pre-Tax Income"
+        value={annualPreTaxIncome}
+        onChange={setAnnualPreTaxIncome}
+        min={0}
+        max={MAX_ANNUAL_INCOME}
         prefix="$"
       />
 
-      <InputField 
-        label="Current Retirement Savings" 
-        value={currentRetirementSavings} 
-        onChange={setCurrentRetirementSavings} 
-        min={0} 
-        max={MAX_CURRENT_SAVINGS} 
+      <InputField
+        label="Current Retirement Savings"
+        value={currentRetirementSavings}
+        onChange={setCurrentRetirementSavings}
+        min={0}
+        max={MAX_CURRENT_SAVINGS}
         prefix="$"
       />
 
-      <InputField 
-        label="Monthly Contributions" 
-        value={monthlyContributions} 
-        onChange={setMonthlyContributions} 
-        min={0} 
-        max={MAX_MONTHLY_CONTRIBUTION} 
+      <InputField
+        label="Monthly Contributions"
+        value={monthlyContributions}
+        onChange={setMonthlyContributions}
+        min={0}
+        max={MAX_MONTHLY_CONTRIBUTION}
         prefix="$"
       />
 
-      <InputField 
-        label="Annual Retirement Budget" 
-        value={annualBudgetInRetirement} 
-        onChange={setAnnualBudgetInRetirement} 
-        min={0} 
-        max={MAX_ANNUAL_INCOME} 
+      <InputField
+        label="Annual Retirement Budget"
+        value={annualBudgetInRetirement}
+        onChange={setAnnualBudgetInRetirement}
+        min={0}
+        max={MAX_ANNUAL_INCOME}
         prefix="$"
       />
 
-      <InputField 
-        label="Other Retirement Income" 
-        value={otherRetirementIncome} 
-        onChange={setOtherRetirementIncome} 
-        min={0} 
-        max={MAX_ANNUAL_INCOME} 
+      <InputField
+        label="Other Retirement Income"
+        value={otherRetirementIncome}
+        onChange={setOtherRetirementIncome}
+        min={0}
+        max={MAX_ANNUAL_INCOME}
         prefix="$"
       />
     </Grid>
@@ -381,7 +417,7 @@ const RetirementCalculator: React.FC = () => {
   const renderResults = () => (
     <Grid className="right-stack" sx={{ height: "100%" }}>
       {/* Fixed Values Info */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1, flexWrap: 'wrap' }}>
         <InfoChip label={`Retirement Age: ${FIXED_RETIREMENT_AGE}`} />
         <InfoChip label={`SwipeSwipe: $${SWIPE_MONTHLY_CONTRIBUTION}/month`} />
         <InfoChip label={`Return Rate: ${annualRateOfReturn}%`} />
@@ -420,10 +456,34 @@ const RetirementCalculator: React.FC = () => {
             ${formatNumber(swipeFV)}
           </Typography>
           <Typography variant="body2" sx={{ color: "grey" }}>
-            {Math.round((swipeFV / totalFV) * 100)}% of Total
+            {totalFV > 0 ? Math.round((swipeFV / totalFV) * 100) : 0}% of Total
           </Typography>
         </SummaryItem>
       </SummaryBox>
+
+      {/* Compact income-based insights — single row of inline chips */}
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
+        <Chip
+          size="small"
+          label={`Savings Rate: ${currentSavingsRate.toFixed(1)}% ${currentSavingsRate >= 15 ? "\u2713" : "(target 15%+)"}`}
+          sx={{
+            backgroundColor: currentSavingsRate >= 15 ? "#e6f4ea" : "#fef7e0",
+            color: currentSavingsRate >= 15 ? "#1e7e34" : "#92400e",
+            fontWeight: 600,
+            fontSize: "0.75rem",
+          }}
+        />
+        <Chip
+          size="small"
+          label={`Income Replacement: ${incomeReplacementRatio.toFixed(0)}% ${incomeReplacementRatio >= 70 ? "\u2713" : "(target 70-80%)"}`}
+          sx={{
+            backgroundColor: incomeReplacementRatio >= 70 ? "#e6f4ea" : "#fef7e0",
+            color: incomeReplacementRatio >= 70 ? "#1e7e34" : "#92400e",
+            fontWeight: 600,
+            fontSize: "0.75rem",
+          }}
+        />
+      </Box>
 
       {/* Status message */}
       <StatusBox onTrack={onTrack}>
@@ -433,7 +493,7 @@ const RetirementCalculator: React.FC = () => {
       </StatusBox>
 
       {/* Toggle */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
         <ToggleButtonGroup
           color="primary"
           value={view}
@@ -459,19 +519,19 @@ const RetirementCalculator: React.FC = () => {
 
         {/* SUMMARY VIEW */}
         {view === "summary" && (
-          <Box sx={{ width: "100%" }}>
+          <Box sx={{ width: "100%", alignSelf: "flex-start" }}>
             <Card sx={{ p: 2, borderRadius: 2, boxShadow: 3 }}>
               <Typography
                 variant="h6"
-                sx={{ mb: 1.5, fontWeight: 600, color: "#293a60" }}
+                sx={{ mb: 1, fontWeight: 600, color: "#293a60" }}
               >
                 Summary of Your Retirement Plan
               </Typography>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 1.5 }} />
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
                   gap: 2,
                 }}
               >
@@ -479,54 +539,54 @@ const RetirementCalculator: React.FC = () => {
                 <Box>
                   <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: 700, mb: 1.5, color: "#293a60" }}
+                    sx={{ fontWeight: 700, mb: 1, color: "#293a60" }}
                   >
-                    Current retirement plan
+                    Current Plan
                   </Typography>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <SummaryTable>
                     <tbody>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Years until retirement</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Years until retirement</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           {yearsUntilRetirement}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Total retirement savings</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Total retirement savings</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(totalFV)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Annual retirement income</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Annual retirement income</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(annualRetirementIncome)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Monthly contribution</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Monthly contribution</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(monthlyContributions)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>SwipeSwipe contribution</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>SwipeSwipe contribution</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(swipeMonthlyContributions)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Retirement savings runs out at age</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Savings run out at age</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           {currentRunoutAge === null ? "Never" : currentRunoutAge}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>On track?</td>
+                        <td>On track?</td>
                         <td
                           style={{
-                            padding: "6px 4px",
                             fontWeight: 600,
+                            textAlign: "right",
                             color: onTrack ? "green" : "red",
                           }}
                         >
@@ -534,85 +594,85 @@ const RetirementCalculator: React.FC = () => {
                         </td>
                       </tr>
                     </tbody>
-                  </table>
+                  </SummaryTable>
                 </Box>
 
                 {/* RIGHT: Target retirement plan */}
                 <Box>
                   <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: 700, mb: 1.5, color: "#293a60" }}
+                    sx={{ fontWeight: 700, mb: 1, color: "#293a60" }}
                   >
-                    Target retirement plan
+                    Target Plan
                   </Typography>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <SummaryTable>
                     <tbody>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Target retirement savings</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Target retirement savings</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(requiredNestEgg)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Projected savings with target</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Projected with target</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(targetTotalFV)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Recommended monthly contribution</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Recommended monthly</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(targetMonthlyContribution)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>SwipeSwipe contribution</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>SwipeSwipe contribution</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           ${formatNumber(swipeMonthlyContributions)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>SwipeSwipe impact</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
-                          ${formatNumber(swipeFV)} ({Math.round((swipeFV / totalFV) * 100)}%)
+                        <td>SwipeSwipe impact</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
+                          ${formatNumber(swipeFV)} ({totalFV > 0 ? Math.round((swipeFV / totalFV) * 100) : 0}%)
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Savings shortfall/surplus</td>
-                        <td style={{ 
-                          padding: "6px 4px", 
+                        <td>Shortfall / surplus</td>
+                        <td style={{
                           fontWeight: 600,
+                          textAlign: "right",
                           color: totalFV >= requiredNestEgg ? "green" : "red"
                         }}>
                           ${formatNumber(totalFV - requiredNestEgg)}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "6px 4px" }}>Retirement savings runs out at age</td>
-                        <td style={{ padding: "6px 4px", fontWeight: 600 }}>
+                        <td>Savings run out at age</td>
+                        <td style={{ fontWeight: 600, textAlign: "right" }}>
                           {targetRunoutAge === null ? "Never" : targetRunoutAge}
                         </td>
                       </tr>
                     </tbody>
-                  </table>
+                  </SummaryTable>
                 </Box>
               </Box>
-              
-              <Divider sx={{ my: 2 }} />
-              
+
+              <Divider sx={{ my: 1.5 }} />
+
               <Box sx={{ px: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                   Recommendations:
                 </Typography>
-                
+
                 <Typography variant="body2" gutterBottom>
-                  {onTrack 
+                  {onTrack
                     ? "You're on track to meet your retirement goals. Consider increasing your SwipeSwipe savings for even more security."
-                    : `To reach your retirement goal, consider increasing your monthly contributions by $${formatNumber(Math.max(0, targetMonthlyContribution - monthlyContributions))} or increase your SwipeSwipe savings.`
+                    : `To reach your retirement goal, consider increasing your monthly contributions by $${formatNumber(Math.max(0, targetMonthlyContribution - monthlyContributions))}.`
                   }
                 </Typography>
-                
-                <Typography variant="body2" color="primary" sx={{ fontWeight: 500, mt: 1 }}>
+
+                <Typography variant="body2" color="primary" sx={{ fontWeight: 500, mt: 0.5 }}>
                   SwipeSwipe's $200/month contribution adds ${formatNumber(swipeFV)} to your retirement savings!
                 </Typography>
               </Box>
@@ -626,7 +686,10 @@ const RetirementCalculator: React.FC = () => {
   // RENDER
   return (
     <Container className="main-box">
-      <MainHeading variant="h4">Retirement Calculator</MainHeading>
+      <HeaderBar>
+        <HeaderLogo src={swipeswipeLogo} alt="SwipeSwipe" />
+        <HeaderTitle variant="h4">Retirement Calculator</HeaderTitle>
+      </HeaderBar>
 
       <Grid container columns={16} columnSpacing={{ xs: 2, md: 3 }} sx={{ minHeight: 620 }}>
         {/* LEFT: Input Fields */}

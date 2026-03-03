@@ -64,7 +64,9 @@ const NumericFormatCustom = React.forwardRef<HTMLInputElement, ExtendedNumericPr
         thousandSeparator
         isAllowed={(values) => {
           if (max === undefined) return true;
-          return values.value >= min && values.value <= max;
+          const v = values.floatValue;
+          if (v === undefined) return true;
+          return v >= Number(min) && v <= Number(max);
         }}
       />
     );

@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
 
 /** Same shape as your normal chart data */
 interface ChartItem {
